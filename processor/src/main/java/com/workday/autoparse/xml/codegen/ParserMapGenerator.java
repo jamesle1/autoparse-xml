@@ -15,6 +15,7 @@ import com.workday.autoparse.xml.parser.XmlElementParser;
 import com.workday.meta.Modifiers;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
@@ -47,7 +49,8 @@ class ParserMapGenerator {
         this.parseMap = parseMap;
     }
 
-    public void generateParseMap() throws IOException {
+//    public void generateParseMap() throws IOException {
+    public void generateParseMap(ProcessingEnvironment env, Collection<? extends Element> parserElements) throws IOException {
         String packageName = packageElement != null
                              ? packageElement.getQualifiedName().toString()
                              : XmlParserSettingsBuilder.DEFAULT_PACKAGE;
@@ -56,7 +59,30 @@ class ParserMapGenerator {
         String qualifiedClassName = GeneratedClassNames.getQualifiedName(packageName,
                                                                          parserMapClassName);
 
-        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName);
+//        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName);
+//        Log.println(env, "what is packageElement: " + packageElement);
+
+//        int size = parseMap.size();
+//        Element[] parseValue = parseMap.values().toArray(new Element[size]);
+//        Log.println(env, "what is enclosing element of the parseValue: " + parseValue[0].getEnclosingElement());
+
+//        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName, parseValue[0].getEnclosingElement());
+        Log.println(env, "\n************************** what is originatingElements: " + parserElements.toArray(new Element[parserElements.size()])[0]);
+        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName, parserElements.toArray(new Element[parserElements.size()])[0]);
+
+//        int parserCount = parserElements.size();
+//        Log.println(env, "length of parserElements: " + parserElements.toArray(new Element[parserCount]).length);
+//        Element[] elements = parserElements.toArray(new Element[parserCount]);
+//        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName, elements[0], elements[1], elements[2]);
+//        int size = parseMap.size();
+//        Element[] parseValue = parseMap.values().toArray(new Element[size]);
+//        Log.println(env, "originating element: " + elements[0]);
+//        if (parserCount > 1) {
+//            Log.println(env, "originating element 2: " + elements[1]);
+//            JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName, elements[0], elements[1]);
+//        }
+
+//        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName, parserElements.iterator().next());
 
         JavaWriter writer = new JavaWriter(sourceFile.openWriter());
         writer.emitPackage(packageName);
@@ -86,7 +112,7 @@ class ParserMapGenerator {
     private Set<String> getParsableClassImports() {
         Set<String> results = new HashSet<>();
         for (TypeElement element : parseMap.values()) {
-            results.add(element.getQualifiedName().toString() + GeneratedClassNames.PARSER_SUFFIX);
+            results.add(element.getQualifiedName().toString());// + GeneratedClassNames.PARSER_SUFFIX);
         }
         return results;
     }
@@ -110,8 +136,8 @@ class ParserMapGenerator {
         writer.beginInitializer(true);
         for (Map.Entry<String, TypeElement> entry : parseMap.entrySet()) {
             writer.emitStatement("MAP.put(\"%s\", %s.INSTANCE)", entry.getKey(),
-                                 entry.getValue().getSimpleName()
-                                         + GeneratedClassNames.PARSER_SUFFIX);
+                                 entry.getValue().getSimpleName());
+//                                         + GeneratedClassNames.PARSER_SUFFIX);
         }
         writer.endInitializer();
     }
