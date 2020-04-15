@@ -15,18 +15,12 @@ import com.workday.autoparse.xml.utils.StringUtils;
 import com.workday.meta.PackageTree;
 
 import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -34,7 +28,6 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.Name;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.ElementFilter;
@@ -50,110 +43,59 @@ import javax.tools.Diagnostic;
  */
 public class XmlElementParserMapProcessor extends AbstractProcessor {
 
-    private Map<String, Collection<TypeElement>> parserMap = new HashMap<>();
+    private static Map<String, Collection<TypeElement>> parserMap = new HashMap<>();
 
-    Set<PackageElement> partitionPackageElements = new HashSet<>();
-
-    static int test = 0;
+    private static Set<PackageElement> partitionPackageElements = new HashSet<>();
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-
-        Log.println(processingEnv, "\n ---------- xml element parser map processor is called with : " + test++ + "  ---------- ");
-
-        Log.println(processingEnv, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
-        Log.printElements(processingEnv, "\n###### what is root elements: ", roundEnv.getRootElements());
-        Log.println(processingEnv, "\n ###############  ################### ");
-        Log.printElements(processingEnv, "\n###### what is xml parsers: ", roundEnv.getElementsAnnotatedWith(XmlParser.class));
-
         if (annotations == null || annotations.isEmpty()) {
             return false;
         }
 
         final Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith(XmlParser.class);
+
         if (elements.isEmpty()) {
             return false;
         }
+
         for (Element e : elements) {
             addClassToParseMap((TypeElement) e);
+            PackageElement packageElement = processingEnv.getElementUtils().getPackageOf(e);
+            if (packageElement.getAnnotation(XmlParserPartition.class) != null) {
+                partitionPackageElements.add(packageElement);
+            }
         }
 
-        final Element element = elements.iterator().next();
-        Set<XmlParser> parsers = element.getEnclosingElement()
-                                        .getEnclosedElements()
-                                        .stream()
-                                        .filter(element1 -> element1.getKind() == ElementKind.CLASS)
-                                        .filter(element1 -> element1.getAnnotation(XmlParser.class) != null)
-                                        .map((Function<Element, XmlParser>) element1 -> element1.getAnnotation(XmlParser.class))
-                                        .collect(Collectors.toSet());
-        Log.printXmlParsers(processingEnv, "\n!@#$!@#$!@#$!@#$!@#$: printing elements:", parsers);
-
-        final Set<Element> parserElements = element.getEnclosingElement()
-                                                   .getEnclosedElements()
-                                                   .stream()
-                                                   .filter(element1 -> element1.getKind() == ElementKind.CLASS)
-                                                   .filter(element1 -> element1.getAnnotation(XmlParser.class) != null)
-                                                   .collect(Collectors.toSet());
-        for (Element parserElement : parserElements) {
-            addClassToParseMap((TypeElement) parserElement);
+        for (PackageElement packageElement : partitionPackageElements) {
+            final Set<Element> parserElements = packageElement.getEnclosedElements()
+                                                       .stream()
+                                                       .filter(element1 -> element1.getKind() == ElementKind.CLASS)
+                                                       .filter(element1 -> element1.getAnnotation(XmlParser.class) != null)
+                                                       .collect(Collectors.toSet());
+            for (Element parserElement : parserElements) {
+                addClassToParseMap((TypeElement) parserElement);
+            }
         }
-
-        Element rootPackage = getPackage(element);
-        Log.println(processingEnv, "\n ---------------------------> root package: " + rootPackage);
-        Name packageName = processingEnv.getElementUtils().getPackageOf(element).getQualifiedName();
-        Element anotherPackage = processingEnv.getElementUtils().getPackageElement(packageName.subSequence(0, packageName.toString().lastIndexOf(".")));
-        TypeElement packageTypeElement = processingEnv.getElementUtils().getTypeElement(packageName.subSequence(0, packageName.toString().lastIndexOf(".")));
-        Log.println(processingEnv, "\n ---------------------------> root root package: " + packageTypeElement);
-//        Log.printElements(processingEnv, "\n ---------------------------> root root package contains: ",processingEnv.getElementUtils().getAllMembers(packageTypeElement).stream().collect(Collectors.toSet()));
-
-
-
-                PackageElement packageElement = processingEnv.getElementUtils().getPackageOf(element);
-        if (packageElement.getAnnotation(XmlParserPartition.class) != null) {
-//            partitionPackageElements.addAll(ElementFilter.packagesIn(Collections.singleton(packageElement)));
-            partitionPackageElements.add(packageElement);
-        }
-
-//        Log.println(processingEnv, "\n !@#$%#$%@#$% whatever element: " + element.getEnclosingElement().getAnnotation(XmlParserPartition.class));
-        Log.println(processingEnv, "\n !@#$%#$%@#$% enclosing element: " + processingEnv.getElementUtils().getPackageOf(element));
-        Log.println(processingEnv, "\n !@#$%#$%@#$% enclosing enclosing element: " + processingEnv.getElementUtils().getPackageOf(element.getEnclosingElement()).getEnclosingElement());
-
-        Set<XmlParserPartition> parserPartitions = element.getEnclosingElement()
-                                                          .getEnclosedElements()
-                                                          .stream()
-//                                            .filter(element1 -> element1.getKind() == ElementKind.PACKAGE)
-                                                          .filter(element1 -> element1.getAnnotation(XmlParserPartition.class) != null)
-                                                          .map((Function<Element, XmlParserPartition>) element1 -> element1.getAnnotation(XmlParserPartition.class))
-                                                          .collect(Collectors.toSet());
-        Log.printXmlParserPartitions(processingEnv, "\n!@#$!@#$!@#$!@#$!@#$: printing partitions:", parserPartitions);
 
         // Generate ParserMaps
         Set<PackageElement> partitionPackageElementsInRound = ElementFilter.packagesIn(
                 roundEnv.getElementsAnnotatedWith(XmlParserPartition.class));
         if (!partitionPackageElementsInRound.isEmpty()) {
-            partitionPackageElements = partitionPackageElementsInRound;
+            partitionPackageElements.addAll(partitionPackageElementsInRound);
         }
         PackageTree packageTree =
                 new PackageTree(processingEnv.getElementUtils(), partitionPackageElements);
 
-//        generateParserMaps(packageTree);
+        generateParserMaps(packageTree);
         return true;
     }
 
-    private Element getPackage(Element element) {
-        Element nextElement = element.getEnclosingElement();
-
-        while (nextElement instanceof PackageElement && nextElement.getEnclosingElement() != null) {
-            nextElement = nextElement.getEnclosingElement();
-        }
-
-        return nextElement instanceof PackageElement ? nextElement : null;
-    }
-
-
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return CollectionUtils.newHashSet(XmlParser.class.getCanonicalName());
+        return CollectionUtils.newHashSet(XmlParserPartition.class.getCanonicalName(),
+                                          XmlElement.class.getCanonicalName(),
+                                          XmlParser.class.getCanonicalName());
     }
 
     @Override
@@ -181,7 +123,7 @@ public class XmlElementParserMapProcessor extends AbstractProcessor {
             ParserMapGenerator generator =
                     new ParserMapGenerator(processingEnv, entry.getKey(), entry.getValue());
             try {
-                generator.generateParseMap(processingEnv, entry.getValue().values());
+                generator.generateParseMap();
             } catch (IOException e) {
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
             }

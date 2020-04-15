@@ -49,8 +49,7 @@ class ParserMapGenerator {
         this.parseMap = parseMap;
     }
 
-//    public void generateParseMap() throws IOException {
-    public void generateParseMap(ProcessingEnvironment env, Collection<? extends Element> parserElements) throws IOException {
+    public void generateParseMap() throws IOException {
         String packageName = packageElement != null
                              ? packageElement.getQualifiedName().toString()
                              : XmlParserSettingsBuilder.DEFAULT_PACKAGE;
@@ -59,30 +58,7 @@ class ParserMapGenerator {
         String qualifiedClassName = GeneratedClassNames.getQualifiedName(packageName,
                                                                          parserMapClassName);
 
-//        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName);
-//        Log.println(env, "what is packageElement: " + packageElement);
-
-//        int size = parseMap.size();
-//        Element[] parseValue = parseMap.values().toArray(new Element[size]);
-//        Log.println(env, "what is enclosing element of the parseValue: " + parseValue[0].getEnclosingElement());
-
-//        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName, parseValue[0].getEnclosingElement());
-        Log.println(env, "\n************************** what is originatingElements: " + parserElements.toArray(new Element[parserElements.size()])[0]);
-        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName, parserElements.toArray(new Element[parserElements.size()])[0]);
-
-//        int parserCount = parserElements.size();
-//        Log.println(env, "length of parserElements: " + parserElements.toArray(new Element[parserCount]).length);
-//        Element[] elements = parserElements.toArray(new Element[parserCount]);
-//        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName, elements[0], elements[1], elements[2]);
-//        int size = parseMap.size();
-//        Element[] parseValue = parseMap.values().toArray(new Element[size]);
-//        Log.println(env, "originating element: " + elements[0]);
-//        if (parserCount > 1) {
-//            Log.println(env, "originating element 2: " + elements[1]);
-//            JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName, elements[0], elements[1]);
-//        }
-
-//        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName, parserElements.iterator().next());
+        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(qualifiedClassName, parseMap.values().toArray(new Element[parseMap.size()]));
 
         JavaWriter writer = new JavaWriter(sourceFile.openWriter());
         writer.emitPackage(packageName);
